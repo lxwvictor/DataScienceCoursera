@@ -1,0 +1,87 @@
+---
+title: "Regression Models on Motor Trend"
+author: Li Xiaowei
+output: html_document
+---
+## Executive Summary
+This report is going to explore on the data set _Motor Trend_ which is the _mtcars_ in R. Two basic questions will be addressed in this report.
+
+1. Is an automatic or manual transmission better for MPG?
+2. Quantify the MPG difference between automatic and manual transmissions.
+
+Techniques of exploratory data analysis, statistical inference and regression models will be mainly used in this report. Due to limitation of the report length, all code and plots will be put in the appendices. It's going to be slightly difficult to read.
+
+## Which transmission is better?
+According to the documen from R. The _MPG_ means miles per gallon. Auto or manual transmission is defined in _am_ column, 0 means auto and 1 means manual.
+
+Before running into any calculation, let's take a look at the data in text and plot.
+```{r}
+library(datasets)
+data(mtcars)
+library(knitr)
+kable(head(mtcars))
+```
+
+```{r}
+#plot(mtcars$mpg, col = mtcars$am + 2, xlab = "Car Index", ylab = "MPG (miles/gallon)")
+#abline(h = tapply(mtcars$mpg, factor(mtcars$am), mean), col = c(2, 3))
+#legend("topright", pch = 1, col = c(2, 3), legend = c("Auto", "Manual"))
+boxplot(mpg ~ am, col = c(2, 3), xlab = "Transmission (0 = auto, 1 = manual)", ylab = "MPG (miles/gallon", data = mtcars)
+```
+
+The two horizontal lines are the means of _MPG_ of each group. It's quite obvious from the plot to observe that manual transmission is better than auto, conditioning that we're not considering the other factors like number of cylinders or car weight. And let's prove it by performing hypothesis testing.
+
+Assume the null hypotesis is that auto and manual transmission are equally efficient.
+```{r}
+#autoMPG <- mtcars[mtcars$am == 0, ]$mpg
+#manualMPG <- mtcars[mtcars$am == 1,]$mpg
+#t.test(autoMPG, manualMPG, paired = FALSE)
+t.test(mpg~am, data = mtcars, paird = FALSE)
+```
+
+The p-vale is 0.001 which is smaller than 0.05 so we'll reject the null hypothesis and conclude auto and manual transmission efficiency are different. Moreover, t value is `r t.test(mpg~am, data = mtcars, paird = FALSE)$statistic` and the confidence interval of this t test is [`r t.test(mpg~am, data = mtcars, paird = FALSE)$conf[1:2]`] which indicate that auto transmission is worse for MPG. Same conclusion as visual inspection previously. This addresses the first question at the beginning of this report.
+
+However, the factors of number of engine cylinders, car weight and etcs were not considered during the above analysis. There are only 32 samples. Dividing them into more groups will cause very huge standard error of mean, eventually will become difficult to analyze.
+
+## Quantify the MPG difference
+There are multiple choices when performing regression model selection, ANOVA, VIF and Covariate model selection. I prefer the covariate model selection by applying the stepwise regression. It eliminates my effort of comparing different models manually.
+
+Let's take a look at what will happen if I choose all columns (other than MPG) as regressors.
+```{r}
+full.model <- lm(mpg ~ ., data = mtcars)
+summary(full.model)$coef
+```
+
+Look at those p-values, the regressors all look equally unsignificant. It's quite difficult to choose which regressor or not. We can try eliminate the regressor one by one. But as I mentioned, I prefer to leave it to computer and algorithm to determine for me.
+```{r, results='hide', message=FALSE}
+reduced.model <- step(full.model, direction = "backward")
+```
+```{r}
+summary(reduced.model)
+```
+
+The chosen variables are _wt_, _qsec_ and _am_. Usually _am_ should be treated as categorical variable before performing the regression. However, this variable only has value of 0 and 1. There is no need to perform factoring beforehand.
+
+Let's take a more detailed look at the coefficients. _wt_ has negative coefficient while the other two variables have positive coefficients.
+
+One unit increament on _wt_ (1000 lb) will decrease MPG by 3.9 because car is heavier and less efficient. One unit increament on _qsec_ (1/4 mile time) will increase MPG by 1.2 because the engine is less powerful and usually more efficient on MPG. One unit increament on _am_, in this report it means change form auto(0) to manual(1) will cause MGP increase by 2.9. This is the same observation as performing t test previously that manual transmission is more efficient. This also addresses the second question stated at the beginning of this report.
+
+Before concluding this _reduced.model_ is the final selection, let's do a comparison with the _full.model_ and also plot the residual to ensure there is no pattern or correlation.
+```{r}
+anova(reduced.model, full.model)
+```
+
+The p-value is 0.86, greater than 0.05. So we failed to reject the null hypothesis that the coefficients of the additional variables in _full.model_ is 0. Meaning, we can omit those additional variables by accepting the _reduced.model_ is a better one.
+
+The F-statistic is 52.75, much greater than 1, R-squared is 0.83 which is close to 1. These figures all agree the _reduced.model_ is a "fitted" model. And lastly let's plot the model to perform some diagnostics.
+```{r}
+par(mfrow = c(2, 2))
+plot(reduced.model)
+```
+
+The diagnostic plots of an ideal model should have relatively flat red curve & random scatterplot for Residual and Scale plots , normality of errors should follow the diagonal line in the Q-Q plot. And lastly, smooth red line is close to the grey dotted line for the Leverage plot.
+
+We can see that the _reduced.model_ does not perform well on every plot, but still quite acceptable based on the criterias stated above.
+
+## Conclusion
+The p-value, t-value and confidence interval of the t test in the first part of this report all indicating manual transmission will have greater MPG. This conclusion is also proved by the regression model selected in the second part of this report as the coefficent of _am_ is positive. The p-value, r-squared, F-statistic and diagnostic plots all imply the selected model is a "fitted" regression model.

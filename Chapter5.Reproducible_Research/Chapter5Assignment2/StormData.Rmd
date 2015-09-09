@@ -1,0 +1,111 @@
+---
+title: "Reproducible Research: Analysis of US Severe Weather Impact to Public Health and Economic Problems"
+---
+## Synopsis
+This report is to explore and address the types of severe weather which caused the greatest impact to public health and economic. The source data comes from the [Coursera website](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) which was originally from NOAA Storm Database. The hardware and software environment of running this report as below.
+```{r}
+sessionInfo()
+```
+
+## Data Processing
+### Load library
+Load the library need for making plots first. Below code chunk was set to supress the output when loading libraries. "ggplot2" will be used to make plots in this report.
+```{r, message = FALSE}
+library(ggplot2)
+```
+
+### Download and read data, cache if needed
+Download the file and read it. "bzfile()" is used here to avoid the unzip process. Cache option is used here to make the code running faster after initial run.
+```{r, cache=TRUE}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+download.file(fileUrl, destfile = "./repdata-data-StormData.csv.bz2", method = "curl")
+storm <- read.csv(bzfile("./repdata-data-StormData.csv.bz2"), header = T, stringsAsFactors = F)
+```
+
+### Clean the data
+This report focuses on the analysis of weather events impacting public health and economic, hence, the next step is to cleaning the data. The strategy is to choose the data of which either FATALITIES, INJURIES, PROPDMG OR CROPDMG is greater than 0.
+```{r, cache=TRUE}
+isFat <- storm$FATALITIES > 0
+isInj <- storm$INJURIES > 0
+isPro <- storm$PROPDMG > 0
+isCro <- storm$CROPDMG > 0
+intData <- storm[isFat | isInj | isPro | isCro, ]
+```
+
+According to the storm data documentation. The PRODDMGEXP and CROPDMGEXP are supposed to have value of "K", "M", or "B" to signify magnitude of number with meaning of thousands, millions or billions. So next step is to filter out those data with characters other than "K", "M" or "B" in PRODDMGEXP or CROPDMGEXP columns. Let's take a look at the composition of these two columns first.
+```{r, cache=TRUE}
+table(intData$PROPDMGEXP)
+table(intData$CROPDMGEXP)
+```
+Then filter the data by the criteria described previously.
+```{r, cache=TRUE, results='hide'}
+isVal <- intData$PROPDMGEXP %in% c("k", "K", "m", "M", "b", "B") | intData$CROPDMGEXP %in% c("k", "K", "m", "M", "b", "B")
+intData <- intData[isVal, ]
+nrow(intData)
+```
+The number of valid data for this report is `r nrow(intData)`.
+
+## Analyze Data
+In the clean data set derived from previous part, the data of damage are represented in four columns (PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP) and the impact of public health are represented in two columns (FATALITIES, INJURIES). They are not ready for direct comparison and computation, especially the cost of the damage are in thousands, millions or billions dollars. Below code chunk will add another two new columns named COST and HEALTH.
+```{r}
+isPK <- intData$PROPDMGEXP %in% c("k", "K")
+isPM <- intData$PROPDMGEXP %in% c("m", "M")
+isPB <- intData$PROPDMGEXP %in% c("b", "B")
+isCK <- intData$CROPDMGEXP %in% c("k", "K")
+isCM <- intData$CROPDMGEXP %in% c("m", "M")
+isCB <- intData$CROPDMGEXP %in% c("b", "B")
+intData$COST <- intData$PROPDMG * (1e3 * isPK + 1e6 * isPM + 1e9 * isPB)
+intData$COST <- intData$COST + intData$CROPDMG * (1e3 * isCK + 1e6 * isCM + 1e9 * isCB)
+intData$HEALTH <- intData$FATALITIES + intData$INJURIES
+```
+The data set has `r length(unique(intData$EVTYPE))` unique types of events. Many of them are actually the same type of event. The code chunk below will categorize and standardize them.
+```{r}
+intData$EVTYPE[grep("Flood|Dam Break|RIP Current|Astronomical|Stream|Urban small", intData$EVTYPE, ignore.case = T)] <- "Flood"
+intData$EVTYPE[grep("Tornado|Torndao|Funnel Cloud|Waterspout|Landspout", intData$EVTYPE, ignore.case = T)] <- "Tornado"
+intData$EVTYPE[grep("Snow|Blizzard", intData$EVTYPE, ignore.case = T)] <- "Snow"
+intData$EVTYPE[grep("Hail|Ice Storm", intData$EVTYPE, ignore.case = T)] <- "Hail"
+intData$EVTYPE[grep("Erosion", intData$EVTYPE, ignore.case = T)] <- "Erosion"
+intData$EVTYPE[grep("Marine|Surf|Wave|Swell|Tide|Coastal|Storm Surge|High Water|Seiche", intData$EVTYPE, ignore.case = T)] <- "Wave"
+intData$EVTYPE[grep("Wind|TSTM|Turbulence|Gustnado|Apache", intData$EVTYPE, ignore.case = T)] <- "Wind"
+intData$EVTYPE[grep("Dust", intData$EVTYPE, ignore.case = T)] <- "Dust"
+intData$EVTYPE[grep("Rain|Precipitation|Shower|Urban and small", intData$EVTYPE, ignore.case = T)] <- "Rain"
+intData$EVTYPE[grep("Storm", intData$EVTYPE, ignore.case = T)] <- "Storm"
+intData$EVTYPE[grep("Fire", intData$EVTYPE, ignore.case = T)] <- "Fire"
+intData$EVTYPE[grep("Frost", intData$EVTYPE, ignore.case = T)] <- "Frost"
+intData$EVTYPE[grep("Heat|Warm", intData$EVTYPE, ignore.case = T)] <- "Heat"
+intData$EVTYPE[grep("Cold", intData$EVTYPE, ignore.case = T)] <- "Cold"
+intData$EVTYPE[grep("Wet", intData$EVTYPE, ignore.case = T)] <- "Wet"
+intData$EVTYPE[grep("Drought", intData$EVTYPE, ignore.case = T)] <- "Drought"
+intData$EVTYPE[grep("Fog", intData$EVTYPE, ignore.case = T)] <- "Fog"
+intData$EVTYPE[grep("Freeze|Freezing", intData$EVTYPE, ignore.case = T)] <- "Freeze"
+intData$EVTYPE[grep("Hurricane", intData$EVTYPE, ignore.case = T)] <- "Hurricane"
+intData$EVTYPE[grep("Ice|Icy|Glaze", intData$EVTYPE, ignore.case = T)] <- "Ice"
+intData$EVTYPE[grep("Typhoon|Depression", intData$EVTYPE, ignore.case = T)] <- "Typhoon"
+intData$EVTYPE[grep("Waterspout", intData$EVTYPE, ignore.case = T)] <- "Waterspout"
+intData$EVTYPE[grep("Winter|Wintry", intData$EVTYPE, ignore.case = T)] <- "Winter"
+intData$EVTYPE[grep("Smoke|Ash", intData$EVTYPE, ignore.case = T)] <- "Smoke"
+intData$EVTYPE[grep("Ligntning|Lightning|Lighting", intData$EVTYPE, ignore.case = T)] <- "Lightning"
+intData$EVTYPE[grep("Mud", intData$EVTYPE, ignore.case = T)] <- "Mudslide"
+intData$EVTYPE[grep("Burst", intData$EVTYPE, ignore.case = T)] <- "Burst"
+intData$EVTYPE[grep("Landslide", intData$EVTYPE, ignore.case = T)] <- "Landslide"
+intData$EVTYPE[grep("\\?|other", intData$EVTYPE, ignore.case = T)] <- "Other"
+```
+As a result, there are `r length(unique(intData$EVTYPE))` different types of events after the above categorization. In detail, they are listed below with how many occurrences in ascending order.
+```{r}
+table(intData$EVTYPE)[order(table(intData$EVTYPE))]
+```
+
+## Results
+There are 34 different types of events from previous section. It'll be difficult to view the plots if putting all of them in the plot. This report focus on the events that have the biggest impact, hence, only the top 10 will be presented in the plot.
+
+Aggregate the data set by the event type and then apply the sum function to get 2 new data sets named "health" and "economic". The final plots will be based on these 2 new data sets.
+```{r}
+health <- aggregate(HEALTH ~ EVTYPE, data = intData, FUN = sum)
+health <- health[order(health$HEALTH, decreasing = T), ][1:10,]
+economic <- aggregate(COST ~ EVTYPE, data = intData, FUN = sum)
+economic <- economic[order(economic$COST, decreasing = T), ][1:10,]
+ggplot(data = health, aes(x = EVTYPE, y = HEALTH, colour = EVTYPE)) + geom_bar(aes(fill = EVTYPE),stat="identity") + xlab("Event Type") + ylab("Health (injury or death)") + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + ggtitle("Top 10 events caused the biggest impact to public health")
+ggplot(data = economic, aes(x = EVTYPE, y = COST, colour = EVTYPE)) + geom_bar(aes(fill = EVTYPE),stat="identity") + xlab("Event Type") + ylab("Cost (dollars)") + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + ggtitle("Top 10 events caused the greatest impact to economic")
+```
+
+From the above two plots, TORNADO, FLOOD and WIND are the events which caused the biggest number of injuries or death. FLOOD, HURRICANE and TORNADO are the events that caused the greatest impact to economic.

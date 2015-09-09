@@ -1,0 +1,33 @@
+*This tesxt will appear italicized!*
+
+**This text will appear bold!**
+
+## This is a secondary heading
+
+### This is a tertiary heading
+
+- first item in list
+- seocond item in list
+- third item in list
+
+1. first item in list
+2. second item in list
+3. third list in list
+
+[Johns Hopkin Bloomberg School of Public Health](http://www.jhsph.edu/)
+
+[Download R](http://www.r-project.org/)
+
+[RStudio](http://www.rstudio.com/)
+
+I spend so much time reading [R bloggers][1] and [Simply Statistics][2]!
+
+[1]: http://www.r-bloggers.com/ "R bloggers"
+[2]: http://simplystatistics.org/ "Simply Statistics"
+
+First line
+Second line
+
+First line  
+Second line
+

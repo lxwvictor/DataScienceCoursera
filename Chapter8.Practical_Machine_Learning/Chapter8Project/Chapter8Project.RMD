@@ -1,0 +1,177 @@
+---
+title: "Practical Machine Learning"
+author: Li Xiaowei
+output: html_document
+---
+# Summary
+This report is a study on building a predication model to predict personal activity level. The input are the data collected from various wearable devices. The output is the classe range from "A" to "E". More data and backgroup of the data from this study can be found from "http://groupware.les.inf.puc-rio.br/har".
+
+Running environment of this report is as below.
+```{r}
+sessionInfo()
+```
+
+# Download and prepare data
+## Prepare packages
+This study is basically a machine learning of classification problem. There are quite some different learning algorithms and I choose random forest here.
+
+```{r, message=FALSE}
+if(require(randomForest) == FALSE) install.pacakge("randomForest")
+library(randomForest)
+if(require(caret) == FALSE) install.packages("caret")
+library(caret)
+```
+
+## Download and read data
+```{r, cache = TRUE}
+#setwd("./Chapter8.Practical_Machine_Learning/Chapter8Project/")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+              "pml_training.csv", method = "curl")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+              "pml_testing.csv", method = "curl")
+
+# The "pml_training.csv" file contains all the training and validating data
+pmlTraining <- read.csv("pml_training.csv")
+# "pml_testing.csv" is for the purpose of this project 20 testing cases
+testing <- read.csv("pml_testing.csv")
+```
+
+The _testing.csv_ file contains only the 20 testing cases. The _pml\_testing.csv_ file contains the training and validating data. Here I split it at 7/3. 70% for training and 30% for validating to evaluate the trained model.
+
+```{r}
+# Split data to training and validating with 7/3
+inTrain <- createDataPartition(y = pmlTraining$classe, p = 0.7, list = FALSE)
+training <- pmlTraining[inTrain, ]
+validating <- pmlTraining[-inTrain, ]
+```
+
+Le't take a glance at the data first.
+```{r}
+dim(training)
+str(testing)
+```
+```{r, results="hide"}
+summary(testing)
+```
+
+The original data set has 160 columns. Before fitting a model, we need to explore some data cleaning. The structure of testing data set gives really a lot of hints on how to clean the data. And I found just by eliminating the columns with NAs will produce very clean data set. Blow code shows the steps.
+```{r}
+# Clean data by elimitating logical columns according to the testing data
+t <- list()
+for(i in 6:159) {
+      if(class(testing[,i]) == "logical") t[length(t) + 1] <- i
+}
+
+newTraining <- training[, -c(1:5, unlist(t))]
+newValidating <- validating[, -c(1:5, unlist(t))]
+newTesting <- testing[, -c(1:5, unlist(t))]
+```
+
+The resulted data sets have columns of either integer or numeric data type. To make it easier for the remaining of this report, I coerced interger column to numeric. This is very helpful when come to the stage of predicting the testing data set.
+
+```{r}
+# Converting data type as all columns are either integer or numeric
+colNum <- dim(newTesting)[2] - 1
+for(i in 1:colNum) {
+        newTraining[, i] <- as.numeric(newTraining[, i])
+        newValidating[, i] <- as.numeric(newValidating[, i])
+        newTesting[, i] <- as.numeric(newTesting[, i])
+}
+```
+
+# Fit in the training model
+I started the first random forest model with _mtry = 7_ and _ntree = 100_. On my macbook it takes about one minute to complete. And the fine tuning will focus on these two parameters.
+```{r, cache = TRUE}
+# It takes about one minute to finish the training with mtry = 7 and ntree = 100
+startTime <- proc.time()
+rfModFit <- randomForest(classe ~ ., data = newTraining,
+                         mtry = floor(sqrt(dim(newTraining)[2] - 1)),
+                         ntree = 100,
+                         proximity = TRUE,
+                         importance = TRUE)
+proc.time() - startTime
+```
+
+# Fine tune the model
+## Parameter ntree
+Below plot shows the relationship of OOB error rate versus the number of trees. It can be observed that, started from 40, OOB wouldn't drop much. This observation will be used to fine tune the final training model.
+```{r}
+plot(rfModFit$err.rate[, 1], type = "l", lwd = 3, col = "blue",
+     main = "Random forest: OOB estimate of error rate",
+     xlab = "Number of Trees", ylab = "OOB error rate")
+```
+
+## Parameter mtry
+Another parameter to minimize the OOB error is the _mtry_, below piece of code and plot shows how.
+
+_mtry_ of 14 to 28 will produce the smaller OOB error and I'll choose 14.
+```{r, cache = TRUE}
+tuneRF(subset(newTraining, select = -classe),
+       newTraining$classe,
+       ntreeTry = 100)
+title("Random forest: tuning the mtry hyperparameter")
+```
+
+The OOB error is very small from previous two analysis, it's smaller than 1%. We would expect the out of sample error also very small if we fit the validating data set to the model. We'll see this in the coming sections.
+
+## Variable importance
+There are 54 predictors in the data set. Some of them can be excluded without causing much decline in accuracy. There is a very nice function can do this, refer to below plot.
+```{R}
+varImpPlot(rfModFit, main = "Random forest: Variable importance")
+```
+
+# Validating the model before fine tuning
+Now let's feed in the validating data set to check the performance of the model.
+```{r}
+rfPred <- predict(rfModFit, subset(newValidating, select = -classe))
+table(rfPred, newValidating$classe)
+sum(diag(table(rfPred, newValidating$classe)))/nrow(newValidating)
+```
+
+The out of sample error rate is `r 1 - sum(diag(table(rfPred, newValidating$classe)))/nrow(newValidating)`.
+
+# Validating the model after fine tuning
+The variable importance plot was shown previously, due to the limitation of the report length, I won't explore on reducing the predictors here. I'll update _ntree_ to 40 and _mtry_ to 14 according to the previous fine tuning section. Then compare the training time and performance with the first model.
+```{r, cache = TRUE}
+startTime <- proc.time()
+rfModFit2 <- randomForest(classe ~ ., data = newTraining,
+                         mtry = 14,
+                         ntree = 40,
+                         proximity = TRUE,
+                         importance = TRUE)
+proc.time() - startTime
+```
+
+With reduced _ntree_ value, the training time was cut by half, only half a minute now. The analysis of impact of different _mtry_ and _ntree_ is omitted as it simply repeats the previous fine tune section.  
+
+Out of sample error rate is caculated by fit in the testing data set.
+```{r}
+rfPred <- predict(rfModFit2, subset(newValidating, select = -classe))
+table(rfPred, newValidating$classe)
+sum(diag(table(rfPred, newValidating$classe)))/nrow(newValidating)
+```
+
+After fine tune, the error rate is `r 1- sum(diag(table(rfPred, newValidating$classe)))/nrow(newValidating)`, which is almost the same as the first try (sometimes even exactly the same). But we achieved half training time. Moreover, as expected previously, this error rate is very small.
+
+More other training algorithms also worth to try, like _gbm_, _bagging_ and etcs. However, not covered in this report.
+
+# Answers to the 20 testing cases
+This section will utilize the sample code provided to generate the answers of the 20 testing case. Passing rate 20/20.
+```{r}
+# Save the model
+saveRDS(rfModFit2, file="myFile.rds")
+
+# Load the model
+#rfModFit2 = readRDS("myFile.rds")
+
+# Predication on testing data
+answers <- predict(rfModFit2, subset(newTesting, select = - problem_id))
+pml_write_files = function(x){
+        n = length(x)
+        for(i in 1:n){
+                filename = paste0("problem_id_",i,".txt")
+                write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+        }
+}
+pml_write_files(answers)
+```

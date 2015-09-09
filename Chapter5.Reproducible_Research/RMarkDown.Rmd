@@ -1,0 +1,99 @@
+My first R Markdown file
+===========
+
+This is my first R markdown file.
+
+Here, we're going load some data.
+
+```{r}
+library(datasets)
+data(airquality)
+summary(airquality)
+```
+
+Let's first make a pairs plot of the data.
+```{r}
+pairs(airquality)
+```
+
+Here's a regression model of ozone on wind, solar radiation and temperature.
+
+```{r}
+library(stats)
+fit <- lm(Ozone ~ Wind + Solar.R + Temp, data = airquality)
+summary(fit)
+```
+
+Here's an unordered list:
+
+* First element
+
+* Second element
+
+
+## Hide code or result
+```{r simulation, echo = FALSE}
+set.seed(1)
+x <- rnorm(100)
+mean(x)
+```
+
+```{r simulation2, echo = FALSE, results = "hide"}
+set.seed(1)
+x <- rnorm(100)
+mean(x)
+```
+
+## Example of inline text
+
+```{r computetime, echo = FALSE}
+time <- format(Sys.time(), "%a %b %d %X %Y")
+rand <- rnorm(1)
+```
+
+The current time is `r time`, My favorite random number is `r rand`.
+
+## Incorporating Graphics
+Let's first simulate some data.
+```{r simulatedata, echo = TRUE}
+x <- rnorm(100); y <- x + rnorm(100, sd = 0.5)
+```
+Here is a scatterplot of data.
+```{r scatterplot, fig.height=4}
+par(mar = c(5, 4, 1, 1), las = 1)
+plot(x, y, main = "My Simulated Data")
+```
+
+## Making Tables with xtable
+```{r fitmodel}
+library(datasets)
+data(airquality)
+fit <- lm(Ozone~ Wind + Temp + Solar.R, data = airquality)
+```
+Here is a table of regression coefficients.
+```{r showtable, results="asis"}
+library(xtable)
+xt <- xtable(summary(fit))
+print(xt, type = "html")
+```
+
+## Setting Global Options
+```{r setoptions, echo = FALSE}
+library(knitr)
+opts_chunk$set(echo = FALSE, results = "hide")
+```
+First simulate data
+```{r simulatedata2, echo = TRUE}
+x <- rnorm(100); y <- x + rnorm(100, sd = 0.5)
+```
+Here is a scatterplot of the data.
+
+```{r scatterplot2, fig.height = 4}
+par(mar = c(5, 4, 1, 1), las = 1)
+plot(x, y, main = "My Simulated data")
+```
+
+```{r}
+num <- 50
+```
+The value of "num" is `r num`
