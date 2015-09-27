@@ -461,3 +461,38 @@ g
 #out$response$url
 out <- ggplotly(g)
 out
+
+## Slidify
+library(slidify)
+setwd("./Chapter9.Developing_Data_Products/")
+author("first_deck")
+
+##
+library(shiny)
+ui <- shinyUI(fluidPage(
+        mainPanel(
+                textOutput("text1"),
+                checkboxGroupInput("checkGroup", 
+                                   label = h3("Alternatives"), 
+                                   choices = list("A" = 1, 
+                                                  "B" = 2, 
+                                                  "C" = 3,
+                                                  "D" = 4),
+                                   selected = NULL),
+                actionButton("action", label = "Next")
+        )
+))
+
+server <- shinyServer(function(input, output) {
+        observe({
+                if(input$action>0 & input$action<=2){
+                        valores<-renderText({
+                                input$checkGroup
+                        })
+                        data<-unlist(strsplit(valores(), split=" "))
+                        print(data)
+                }
+        })
+})
+
+shinyApp(ui = ui, server = server)

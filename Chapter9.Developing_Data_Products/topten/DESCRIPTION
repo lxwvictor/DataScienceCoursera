@@ -1,0 +1,10 @@
+Package: topten
+Type: Package
+Title: Building a Prediciton Model from Top 10 Features
+Version: 0.1
+Date: 2015-09-24
+Author: Li Xiaowei
+Maintainer: Li Xiaowei <lxwvictor@gmail.com>
+Description: Functions for building and predicting from models from selecting the top 10 predictors in a dataset  
+License: GPL-3
+LazyData: TRUE
