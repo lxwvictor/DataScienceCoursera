@@ -1,7 +1,7 @@
 Chapter9Project
 ========================================================
 author: Li Xiaowei
-date: Sun Sep 27 13:23:29 2015
+date: Mon Oct 12 22:21:20 2015
 transition: rotate
 
 This presentation describes how my [shiny appliation](https://lxwvictor.shinyapps.io/Chapter9Project) works
