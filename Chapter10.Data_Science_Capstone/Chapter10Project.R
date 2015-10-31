@@ -26,18 +26,20 @@ oneJSON[1,1]
 
 twoLines <- lines[1:2]
 twoLines
-twoJSON <- t(sapply(twoLines, fromJSON))
+twoJSON <- t(lapply(twoLines, fromJSON))
+twoJSON <- data.frame(matrix(unlist(twoJSON)))
 twoJSON
 
 library(jsonlite)
 search()
 detach("package:jsonlite", unload = TRUE)
 
-
-yelpBusinessDataFilePath <- file.path(dataDir, "yelp_academic_dataset_business.json")
-yelpBusinessData <- fromJSON(sprintf("[%s]", 
-                                     paste(readLines(yelpBusinessDataFilePath), 
-                                           collapse = ",")), 
+# Another way to read the json file
+if(require(readr) == FALSE) install.packages("readr")
+library(readr)
+yelpBusinessDataFilePath <- "yelp_academic_dataset_user.json"
+yelpBusinessData <- fromJSON(sprintf("[%s]", paste(read_lines(yelpBusinessDataFilePath), 
+                                                   collapse = ",")), 
                              flatten=TRUE)
 str(yelpBusinessData)
 
@@ -46,8 +48,8 @@ str(yelpBusinessData)
 if(require(jsonlite) == FALSE) install.packages("jsonlite")
 if(require(doParallel) == FALSE) install.packages("doParallel")
 library(jsonlite)
-library(doParallel)
-registerDoParallel(cores = 4)
+#library(doParallel)
+#registerDoParallel(cores = 4)  #don't think this function will help
 
 setwd("./Chapter10.Data_Science_Capstone/SourceData/yelp_dataset_challenge_academic_dataset/")
 business <- stream_in(file("yelp_academic_dataset_business.json"))
@@ -102,3 +104,16 @@ tfans <- ifelse(fans == 0, 0, 1)
 tfunny <- ifelse(funny == 0, 0, 1)
 table(tfans, tfunny)
 fisher.test(tfans, tfunny)
+
+
+## Possible questions
+# 1. Given the review of multiple restaurants, recommend the ones who may also like
+# 2. Predict the reviews/number of customers on festivals, by districts/countries => not feasible as no info on review date
+# 3. 
+
+
+## Exploratory analysis
+# Show the business locations on map
+library(maps)
+map("world", ylim=c(10,70), xlim=c(-130,25), col="gray60")
+points(businessf$longitude, businessf$latitude, pch = 19, col = 2)
