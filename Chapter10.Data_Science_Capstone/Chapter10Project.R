@@ -113,7 +113,54 @@ fisher.test(tfans, tfunny)
 
 
 ## Exploratory analysis
-# Show the business locations on map
+# Filter the US businesses
 library(maps)
-map("world", ylim=c(10,70), xlim=c(-130,25), col="gray60")
-points(businessf$longitude, businessf$latitude, pch = 19, col = 2)
+range(businessf$longitude)
+range(businessf$latitude)
+businessf$Country <- map.where(database = "world", businessf$longitude, businessf$latitude)
+businessfUS <- businessf[which(businessf$Country == "USA"), ]
+range(businessfUS$longitude)
+range(businessfUS$latitude)
+
+# Filter the restaurant businesses
+businessfUSRst <- businessfUS[grepl("[Rr]estaurant", businessfUS$categories), ]
+map("world", ylim=c(20,60), xlim=c(-130,-50), col="gray60")
+points(businessfUSRst$longitude, businessfUSRst$latitude, pch = 19, col = 2)
+
+# Perform k-means clustering, a west and east center will be generated
+kcluster <- kmeans(cbind(businessfUSRst$longitude, businessfUSRst$latitude), 2)
+points(kcluster$centers, pch = 10, col = "black", cex = 2)
+
+businessfUSRstArea <- businessfUSRst
+businessfUSRstArea$Area <- factor(kcluster$cluster, labels = c("East", "West"))
+
+businessfUSRstEast <- subset(businessfUSRstArea, Area == "East")
+businessfUSRstWest <- subset(businessfUSRstArea, Area == "West")
+map("world", ylim=c(20,60), xlim=c(-130,-50), col="gray60")
+points(businessfUSRstEast$longitude, businessfUSRstEast$latitude, pch = 19, col = "blue")
+points(businessfUSRstWest$longitude, businessfUSRstWest$latitude, pch = 19, col = "red")
+points(kcluster$centers, pch = 10, col = "black", cex = 2)
+legend("bottomright", pch = c(19, 19, 10) , col = c("blue", "red", "black"), legend = c("East", "West", "Cluster Center"))
+
+saveRDS(kcluster, "kcluster.rds")
+saveRDS(businessfUSRstEast, "businessfUSRstEast.rds")
+saveRDS(businessfUSRstWest, "businessfUSRstWest.rds")
+
+# Verify all the business ids in the review file are valid
+sum(is.na(match(reviewf$business_id, businessf$business_id)))
+
+businessIndex <- match(reviewf$business_id, businessfUSRstArea$business_id)
+reviewfArea <- reviewf
+reviewfArea$Area <- businessfUSRstArea[businessIndex,]$Area
+
+eastStars <- subset(reviewfArea, Area == "East")$stars
+westStars <- subset(reviewfArea, Area == "West")$stars
+
+par(mfrow = c(1,2))
+boxplot(eastStars, col = "blue", xlab = "East")
+boxplot(westStars, col = "red", xlab = "West")
+
+t.test(eastStars, westStars)
+
+saveRDS(eastStars, "eastStars.rds")
+saveRDS(westStars, "westStars.rds")

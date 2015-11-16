@@ -1,0 +1,58 @@
+Data Science Capstone Project
+===
+author: Li Xiaowei
+date: `r date()`
+transition: rotate
+
+This presentation is available online [here](http://rpubs.com/lxwvictor/Chapter10Project)
+
+Define the Question
+===
+The Yelp dataset is a combination of very rich data contain many features of the local businesses, e.g. the nature of the business, the review from the Yelp users, the users, tips and etcs.
+
+In this capstone project I'm particularly intersted in analyzing people live in different regions (east or west) of USA how happy they are with their restaurants. People who want to open a new restaurant may want to choose a more appropriate location in order to have a higher chance to receive better review score from Yelp.
+
+Travellers who want to enjoy nice food in America may also want to know, east or west USA.
+
+Methodology and Formulate the Solution
+===
+It took some time but evertually I managed to classify all the reviewed restaurants into two regions shown as below.
+
+Then the answer to the question will be simplified to compare these two clusters.
+
+```{r, echo=FALSE, out.width="800px", out.height="450px"}
+west <- readRDS("./SourceData/businessfUSRstWest.rds")
+east <- readRDS("./SourceData/businessfUSRstEast.rds")
+kcluster <- readRDS("./SourceData/kcluster.rds")
+
+library(maps)
+map("world", ylim=c(20,60), xlim=c(-130,-50), col="gray60")
+points(east$longitude, east$latitude, pch = 19, col = "blue")
+points(west$longitude, west$latitude, pch = 19, col = "red")
+points(kcluster$centers, pch = 10, col = "black", cex = 2)
+legend("bottomright", pch = c(19, 19, 10) , col = c("blue", "red", "black"), legend = c("East", "West", "Cluster Center"))
+```
+
+Methodology and Formulate the Solution
+===
+Once I know where the restaurant belongs to, I'll just need to compare the review score from the two regions as two independent samples.
+
+The null hypothesis is there is no difference between the average review score from the two regions.
+<font size=6>
+```{r, echo=FALSE}
+westStars <- readRDS("./SourceData/westStars.rds")
+eastStars <- readRDS("./SourceData/eastStars.rds")
+
+t.test(eastStars, westStars)
+```
+</font>
+
+Result and Discussion
+===
+The t test result shows a very clear conclusion that the average review score are truely different due to the very small p-value.
+
+But, how much difference? It's only 0.03 in the rating system of max 5.
+
+Hence, my conclusion of this study is the average review score are the same for the restaurants in the east and west regions of USA. In other words, there is no preferred region when open a new restaurant or choose travel destination.
+
+There are definitely much more other factors will contribute to the review score of a restaurant, like whether near any office or school, whether having wifi, food price and etcs. These are not covered in this study.
