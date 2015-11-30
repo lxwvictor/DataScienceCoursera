@@ -1,7 +1,7 @@
 Data Science Capstone Project
 ===
 author: Li Xiaowei
-date: Mon Nov 16 14:38:15 2015
+date: Tue Dec  1 00:19:28 2015
 transition: rotate
 
 This presentation is available online [here](http://rpubs.com/lxwvictor/Chapter10Project)
