@@ -1,0 +1,13 @@
+name: developingdataproducts
+title: DevelopingDataProducts
+username:
+account: lxwvictor
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 207476
+bundleId: 954041
+url: https://lxwvictor.shinyapps.io/developingdataproducts/
+when: 1503630838.11874
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: Chapter9Project_first.png|Chapter9Project_second.png|Chapter9Project-rpubs.html|Chapter9Project.html|Chapter9Project.md|Chapter9Project.Rpres|Chapter9Project-figure/unnamed-chunk-2-1.png
